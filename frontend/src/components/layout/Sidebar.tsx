@@ -12,7 +12,6 @@ import {
   FolderArchive,
   BarChart3,
   Settings,
-  Sparkles,
   LogOut,
 } from 'lucide-react';
 import { useAuth, isAdminRole } from '../../context/AuthContext';
@@ -60,18 +59,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       >
         {/* Brand Header */}
         <div className="p-6 border-b border-emerald-900/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-900/40">
-              <Sparkles className="w-5 h-5 text-emerald-950 fill-emerald-950" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-wider font-serif text-emerald-100">
-                TUMATA
-              </h1>
-              <p className="text-[10px] tracking-widest uppercase text-emerald-400 font-semibold">
-                Wedding Studio System
-              </p>
-            </div>
+          <div>
+            <img
+              src="/assets/tumata-logo.png"
+              alt="TUMATA"
+              className="h-9 w-auto brightness-0 invert"
+            />
+            <p className="text-[10px] tracking-widest uppercase text-emerald-400 font-semibold mt-2">
+              Wedding Studio System
+            </p>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
+import { Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -35,12 +35,11 @@ export const Login: React.FC = () => {
         <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 p-8 sm:p-10">
           {/* Logo & Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-700 to-teal-500 items-center justify-center shadow-xl shadow-emerald-900/30 mb-4">
-              <Sparkles className="w-7 h-7 text-white fill-white/80" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-wider font-serif text-slate-900">
-              TUMATA
-            </h1>
+            <img
+              src="/assets/tumata-logo.png"
+              alt="TUMATA"
+              className="h-14 w-auto mx-auto mb-3"
+            />
             <p className="text-xs uppercase tracking-widest text-emerald-700 font-semibold mt-1">
               Wedding Studio Management System
             </p>

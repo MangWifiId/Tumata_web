@@ -7,7 +7,7 @@ Sistem manajemen terpusat untuk usaha fotografi dan videografi pernikahan (**Wed
 ## 📸 Identitas dan Branding TUMATA
 - **Nama Aplikasi:** TUMATA — Wedding Studio Management System
 - **Warna Identitas:** Hijau Zamrud (*Deep Emerald Green* — `#064E3B`, `#047857`) & Mint Accent
-- **Aset Logo:** `assets/tumata-logo.png` & `assets/tumata-logo.svg`
+- **Aset Logo:** `assets/tumata-logo.png` (wordmark hijau, juga dipakai untuk favicon `frontend/public/favicon.png`)
 - **Tipografi:** Serif Elegan untuk Judul (*Cinzel* / *Playfair Display*) & Sans-serif Modern untuk Data (*Plus Jakarta Sans* / *Inter*).
 
 ---
