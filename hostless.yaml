@@ -11,7 +11,7 @@ build:
   max_memory: 4096
 
 # The binary and frontend/dist are produced by the Dockerfile.
-start_command: "bash start.sh"
+start_command: "sh start.sh"
 
 scaling:
   trigger: http_requests

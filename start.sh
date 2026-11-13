@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # TUMATA runtime entrypoint.
 #
 # The server binary is built by the multi-stage Dockerfile (see ./Dockerfile).
