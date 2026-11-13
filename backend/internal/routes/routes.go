@@ -9,6 +9,7 @@ import (
 	"tumata-backend/internal/config"
 	"tumata-backend/internal/handlers"
 	"tumata-backend/internal/middleware"
+	"tumata-backend/internal/models"
 	"tumata-backend/internal/services"
 
 	"github.com/gin-contrib/cors"
@@ -68,10 +69,12 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware(authService))
 		{
+			adminOnly := middleware.RequireRole(models.RoleAdmin, models.RoleOwner)
+
 			// Auth & Profile
 			protected.GET("/auth/profile", authHandler.GetProfile)
 			protected.GET("/users", authHandler.GetUsers)
-			protected.POST("/users", authHandler.CreateUser)
+			protected.POST("/users", adminOnly, authHandler.CreateUser)
 
 			// Dashboard
 			protected.GET("/dashboard/metrics", dashboardHandler.GetMetrics)
@@ -114,16 +117,20 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			protected.DELETE("/notes/:id", noteHandler.DeleteNote)
 			protected.PATCH("/notes/actions/:action_id/toggle", noteHandler.ToggleActionItem)
 
-			// Finance
-			protected.GET("/finance/invoices", financeHandler.GetInvoices)
-			protected.POST("/finance/invoices", financeHandler.CreateInvoice)
-			protected.GET("/finance/payments", financeHandler.GetPayments)
-			protected.POST("/finance/payments", financeHandler.CreatePayment)
-			protected.PATCH("/finance/payments/:id/verify", financeHandler.VerifyPayment)
-			protected.GET("/finance/expenses", financeHandler.GetExpenses)
-			protected.POST("/finance/expenses", financeHandler.CreateExpense)
-			protected.DELETE("/finance/expenses/:id", financeHandler.DeleteExpense)
-			protected.GET("/finance/report", financeHandler.GetFinancialReport)
+			// Finance (admin/owner only)
+			finance := protected.Group("/finance")
+			finance.Use(adminOnly)
+			{
+				finance.GET("/invoices", financeHandler.GetInvoices)
+				finance.POST("/invoices", financeHandler.CreateInvoice)
+				finance.GET("/payments", financeHandler.GetPayments)
+				finance.POST("/payments", financeHandler.CreatePayment)
+				finance.PATCH("/payments/:id/verify", financeHandler.VerifyPayment)
+				finance.GET("/expenses", financeHandler.GetExpenses)
+				finance.POST("/expenses", financeHandler.CreateExpense)
+				finance.DELETE("/expenses/:id", financeHandler.DeleteExpense)
+				finance.GET("/report", financeHandler.GetFinancialReport)
+			}
 
 			// Documents & PDF
 			protected.GET("/documents", documentHandler.GetDocuments)
@@ -135,9 +142,13 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			protected.POST("/team/assign", teamHandler.AssignMemberToProject)
 			protected.DELETE("/team/assign/:id", teamHandler.RemoveMemberFromProject)
 
-			// Settings
-			protected.GET("/settings", settingHandler.GetSettings)
-			protected.PUT("/settings", settingHandler.UpdateSettings)
+			// Settings (admin/owner only)
+			settings := protected.Group("/settings")
+			settings.Use(adminOnly)
+			{
+				settings.GET("", settingHandler.GetSettings)
+				settings.PUT("", settingHandler.UpdateSettings)
+			}
 		}
 	}
 

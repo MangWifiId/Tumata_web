@@ -35,37 +35,86 @@ type DashboardMetrics struct {
 	PendingTasks          []models.Task    `json:"pending_tasks"`
 }
 
+func isPrivilegedRole(role models.UserRole) bool {
+	return role == models.RoleAdmin || role == models.RoleOwner
+}
+
+// projectScope returns a subquery of project IDs the given user is involved in:
+// as PIC, as an assigned project member, or as the assignee of a project task.
+func (h *DashboardHandler) projectScope(userID uint) *gorm.DB {
+	return h.db.Model(&models.Project{}).Select("projects.id").
+		Where("projects.pic_id = ?", userID).
+		Or("projects.id IN (?)", h.db.Model(&models.ProjectMember{}).
+			Select("project_id").Where("user_id = ?", userID)).
+		Or("projects.id IN (?)", h.db.Model(&models.Task{}).
+			Select("project_id").Where("assignee_id = ?", userID))
+}
+
+// scopedProjects returns a project query limited to the user's projects for
+// non-privileged roles, or all projects for admin/owner.
+func (h *DashboardHandler) scopedProjects(userID uint, isPrivileged bool) *gorm.DB {
+	query := h.db.Model(&models.Project{})
+	if !isPrivileged {
+		query = query.Where("projects.id IN (?)", h.projectScope(userID))
+	}
+	return query
+}
+
+// scopedTasks returns a task query limited to tasks assigned to the user for
+// non-privileged roles, or all tasks for admin/owner.
+func (h *DashboardHandler) scopedTasks(userID uint, isPrivileged bool) *gorm.DB {
+	query := h.db.Model(&models.Task{})
+	if !isPrivileged {
+		query = query.Where("assignee_id = ?", userID)
+	}
+	return query
+}
+
 func (h *DashboardHandler) GetMetrics(c *gin.Context) {
 	now := time.Now()
 	startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
 	endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-time.Nanosecond)
 
+	userID := c.GetUint("user_id")
+	roleValue, _ := c.Get("role")
+	userRole, _ := roleValue.(models.UserRole)
+	isPrivileged := isPrivilegedRole(userRole)
+
 	var metrics DashboardMetrics
 
 	// Projects this month
-	h.db.Model(&models.Project{}).
-		Where("created_at >= ? AND created_at <= ?", startOfMonth, endOfMonth).
+	h.scopedProjects(userID, isPrivileged).
+		Where("projects.created_at >= ? AND projects.created_at <= ?", startOfMonth, endOfMonth).
 		Count(&metrics.ProjectsThisMonth)
 
 	// Ongoing projects (Status not Lead, Selesai, or Diarsipkan)
-	h.db.Model(&models.Project{}).
-		Where("status NOT IN (?, ?, ?)", models.StatusLead, models.StatusSelesai, models.StatusDiarsipkan).
+	h.scopedProjects(userID, isPrivileged).
+		Where("projects.status NOT IN (?, ?, ?)", models.StatusLead, models.StatusSelesai, models.StatusDiarsipkan).
 		Count(&metrics.OngoingProjectsCount)
 
 	// Overdue projects (EventDate in past, but status not Selesai/Diarsipkan)
-	h.db.Model(&models.Project{}).
-		Where("event_date < ? AND status NOT IN (?, ?)", now, models.StatusSelesai, models.StatusDiarsipkan).
+	h.scopedProjects(userID, isPrivileged).
+		Where("projects.event_date < ? AND projects.status NOT IN (?, ?)", now, models.StatusSelesai, models.StatusDiarsipkan).
 		Count(&metrics.OverdueProjectsCount)
 
 	// Unfinished tasks count
-	h.db.Model(&models.Task{}).
+	h.scopedTasks(userID, isPrivileged).
 		Where("status != ?", models.TaskCompleted).
 		Count(&metrics.UnfinishedTasksCount)
 
-	// Financials
-	h.db.Model(&models.Project{}).Select("COALESCE(SUM(contract_value), 0)").Scan(&metrics.TotalContractValue)
-	h.db.Model(&models.Payment{}).Where("is_verified = ?", true).Select("COALESCE(SUM(amount), 0)").Scan(&metrics.TotalPaymentsReceived)
-	h.db.Model(&models.Expense{}).Select("COALESCE(SUM(amount), 0)").Scan(&metrics.TotalExpenses)
+	// Financials (scoped to the user's projects for staff)
+	contractQuery := h.scopedProjects(userID, isPrivileged)
+	contractQuery.Select("COALESCE(SUM(contract_value), 0)").Scan(&metrics.TotalContractValue)
+
+	paymentQuery := h.db.Model(&models.Payment{}).Where("is_verified = ?", true)
+	expenseQuery := h.db.Model(&models.Expense{})
+	if !isPrivileged {
+		scope := h.projectScope(userID)
+		paymentQuery = paymentQuery.Where("project_id IN (?)", scope)
+		expenseQuery = expenseQuery.Where("project_id IN (?)", h.projectScope(userID))
+	}
+	paymentQuery.Select("COALESCE(SUM(amount), 0)").Scan(&metrics.TotalPaymentsReceived)
+	expenseQuery.Select("COALESCE(SUM(amount), 0)").Scan(&metrics.TotalExpenses)
 
 	metrics.TotalReceivable = metrics.TotalContractValue - metrics.TotalPaymentsReceived
 	if metrics.TotalReceivable < 0 {
@@ -73,30 +122,34 @@ func (h *DashboardHandler) GetMetrics(c *gin.Context) {
 	}
 	metrics.NetProfit = metrics.TotalPaymentsReceived - metrics.TotalExpenses
 
-	// Upcoming events (next 10 events starting from now or recent)
-	h.db.Preload("Project.Client").
-		Where("start_time >= ?", now.AddDate(0, 0, -1)).
-		Order("start_time asc").
-		Limit(8).
-		Find(&metrics.UpcomingEvents)
+	// Upcoming events (next 8 events starting from now or recent)
+	eventQuery := h.db.Preload("Project.Client").
+		Where("start_time >= ?", now.AddDate(0, 0, -1))
+	if !isPrivileged {
+		eventQuery = eventQuery.Where("project_id IN (?)", h.projectScope(userID))
+	}
+	eventQuery.Order("start_time asc").Limit(8).Find(&metrics.UpcomingEvents)
 
 	// Unpaid/Partial Invoices
-	h.db.Preload("Project.Client").
-		Where("status IN (?, ?)", models.InvoiceUnpaid, models.InvoicePartial).
-		Order("due_date asc").
-		Limit(6).
-		Find(&metrics.UnpaidInvoices)
+	invoiceQuery := h.db.Preload("Project.Client").
+		Where("status IN (?, ?)", models.InvoiceUnpaid, models.InvoicePartial)
+	if !isPrivileged {
+		invoiceQuery = invoiceQuery.Where("project_id IN (?)", h.projectScope(userID))
+	}
+	invoiceQuery.Order("due_date asc").Limit(6).Find(&metrics.UnpaidInvoices)
 	metrics.PendingPaymentsCount = int64(len(metrics.UnpaidInvoices))
 
 	// Active Projects (recent 6)
-	h.db.Preload("Client").Preload("Package").Preload("PIC").
-		Where("status NOT IN (?, ?)", models.StatusSelesai, models.StatusDiarsipkan).
-		Order("event_date asc").
+	h.scopedProjects(userID, isPrivileged).
+		Preload("Client").Preload("Package").Preload("PIC").
+		Where("projects.status NOT IN (?, ?)", models.StatusSelesai, models.StatusDiarsipkan).
+		Order("projects.event_date asc").
 		Limit(6).
 		Find(&metrics.ActiveProjects)
 
 	// Pending Tasks (due soonest)
-	h.db.Preload("Assignee").
+	h.scopedTasks(userID, isPrivileged).
+		Preload("Assignee").
 		Where("status != ?", models.TaskCompleted).
 		Order("deadline asc, stage asc").
 		Limit(8).

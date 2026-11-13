@@ -1,0 +1,29 @@
+# Version control
+.git
+.gitignore
+
+# Secrets — never send these into the build context
+.env
+.env.*
+backend/.env
+backend/.env.*
+
+# Local dependencies and build output (rebuilt inside the image)
+frontend/node_modules
+frontend/dist
+dist
+
+# Local databases, binaries and runtime uploads
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.exe
+backend/uploads
+
+# Logs and editor files
+*.log
+.vscode
+.idea
+.DS_Store
+Thumbs.db

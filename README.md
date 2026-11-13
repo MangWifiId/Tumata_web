@@ -163,3 +163,38 @@ Sistem telah di-*seed* dengan data awal dan pengguna berikut:
 | **Siti Rahayu** | `siti@tumata.com` | `siti123` | **Editor Foto** |
 | **Dani Firmansyah** | `dani@tumata.com` | `dani123` | **Editor Video** |
 | **Maya Wulandari** | `maya@tumata.com` | `maya123` | **Koordinator Acara** |
+
+---
+
+## 🔐 Hak Akses Berdasarkan Peran
+
+| Fitur | Admin / Pemilik | Staf (fotografer, videografer, editor, koordinator) |
+| :--- | :---: | :---: |
+| Dashboard | Semua data studio | Hanya data miliknya |
+| Keuangan & Pembayaran | ✅ | ❌ (403) |
+| Laporan & Analitik | ✅ | ❌ (403) |
+| Pengaturan Studio | ✅ | ❌ (403) |
+| Tambah Anggota Tim | ✅ | ❌ (403) |
+
+- **Admin** dan **Pemilik** melihat seluruh proyek, jadwal, invoice, dan tugas studio.
+- **Staf** hanya melihat proyek tempat ia menjadi PIC, anggota tim proyek, atau penerima tugas. Tugas yang tampil hanya tugas dengan `assignee_id` miliknya.
+- Menu yang tidak diizinkan disembunyikan dari sidebar, dan rute langsung seperti `/finance`, `/reports`, `/settings` otomatis dialihkan ke dashboard. Backend tetap menolak permintaan API dengan `403 Forbidden`.
+- Pembatasan ini juga diterapkan pada API, bukan hanya tampilan, sehingga tidak bisa dilewati lewat URL atau tool eksternal.
+
+---
+
+## ☁️ Deploy ke Hostless Cloud
+
+Repo ini sudah menyertakan `Dockerfile` multi-stage dan `hostless.yaml` sehingga Go dan React dikompilasi di tahap build (bukan saat runtime).
+
+1. Hubungkan repository GitHub `MangWifiId/Tumata_web` ke app Hostless.
+2. Tambahkan environment variables di dashboard Hostless:
+   - `DATABASE_URL` — connection string Neon/PostgreSQL (`sslmode=require`).
+   - `JWT_SECRET` — string acak panjang.
+3. Deploy. Hostless membangun image Docker, lalu menjalankan `start.sh` yang mengeksekusi binary `tumata-server`.
+
+Catatan penting:
+
+- Jangan memakai `apt-get install golang` di `start.sh`. Runtime Hostless bersifat read-only dan tidak menyediakan Go; kompilasi harus dilakukan di tahap build Docker (sudah dikonfigurasi di `Dockerfile`).
+- Folder `uploads` bersifat sementara pada platform container. Untuk produksi jangka panjang, simpan PDF di object storage atau volume persisten.
+- Untuk build lokal: `docker build -t tumata .` lalu `docker run -p 8080:8080 --env-file backend/.env tumata`.

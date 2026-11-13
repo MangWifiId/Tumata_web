@@ -15,8 +15,10 @@ import {
 import { api, formatRupiah, formatDate, formatDateTime } from '../services/api';
 import { DashboardMetrics } from '../types';
 import { ProjectStatusBadge, TaskStatusBadge } from '../components/common/Badge';
+import { useAuth } from '../context/AuthContext';
 
 export const Dashboard: React.FC = () => {
+  const { user, isAdmin } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -55,10 +57,12 @@ export const Dashboard: React.FC = () => {
               <span>Wedding Studio Management</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-white">
-              Studio Overview & Aktivitas
+              {isAdmin ? 'Studio Overview & Aktivitas' : `Dashboard ${user?.name?.split(' ')[0] || 'Saya'}`}
             </h2>
             <p className="text-sm text-emerald-200/80 mt-1 max-w-xl">
-              Pantau jadwal pernikahan, progres editing foto/video, tagihan termin, dan status tim secara terpusat.
+              {isAdmin
+                ? 'Pantau jadwal pernikahan, progres editing foto/video, tagihan termin, dan status tim secara terpusat.'
+                : 'Ringkasan proyek, jadwal acara, dan tugas produksi yang ditugaskan kepada Anda.'}
             </p>
           </div>
 
@@ -68,7 +72,7 @@ export const Dashboard: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-white text-emerald-950 font-semibold text-xs hover:bg-emerald-50 shadow-md transition flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Booking Baru</span>
+              <span>{isAdmin ? 'Booking Baru' : 'Proyek Saya'}</span>
             </Link>
             <Link
               to="/calendar"
@@ -251,13 +255,15 @@ export const Dashboard: React.FC = () => {
                 <p className="text-xs text-slate-500">Invoice DP, Cicilan, atau Pelunasan</p>
               </div>
             </div>
-            <Link
-              to="/finance"
-              className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
-            >
-              <span>Kelola Keuangan</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/finance"
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+              >
+                <span>Kelola Keuangan</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
 
           <div className="space-y-3">

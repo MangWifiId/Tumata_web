@@ -15,7 +15,7 @@ import {
   Sparkles,
   LogOut,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, isAdminRole } from '../../context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -32,12 +32,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { name: 'Proyek & Booking', href: '/projects', icon: Briefcase },
     { name: 'Progres Pekerjaan', href: '/production', icon: CheckSquare },
     { name: 'Notulensi & Catatan', href: '/notes', icon: FileText },
-    { name: 'Keuangan & Pembayaran', href: '/finance', icon: DollarSign },
+    { name: 'Keuangan & Pembayaran', href: '/finance', icon: DollarSign, adminOnly: true },
     { name: 'Manajemen Tim', href: '/team', icon: UserCheck },
     { name: 'Dokumen & Hasil', href: '/documents', icon: FolderArchive },
-    { name: 'Laporan & Analitik', href: '/reports', icon: BarChart3 },
-    { name: 'Pengaturan', href: '/settings', icon: Settings },
+    { name: 'Laporan & Analitik', href: '/reports', icon: BarChart3, adminOnly: true },
+    { name: 'Pengaturan', href: '/settings', icon: Settings, adminOnly: true },
   ];
+
+  const visibleNavigation = navigation.filter(
+    (item) => !item.adminOnly || isAdminRole(user?.role)
+  );
 
   return (
     <>
@@ -76,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-400/70">
             Menu Utama
           </div>
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink

@@ -428,4 +428,48 @@ func SeedInitialData(db *gorm.DB) {
 
 		log.Println("[Seed] Sample clients, projects, tasks, events, and finances initialized successfully")
 	}
+
+	// 4. Backfill demo project members (idempotent: only when the table is empty)
+	var memberCount int64
+	db.Model(&models.ProjectMember{}).Count(&memberCount)
+	if memberCount == 0 {
+		var projects []models.Project
+		db.Order("id asc").Find(&projects)
+
+		if len(projects) > 0 {
+			var users []models.User
+			db.Order("id asc").Find(&users)
+
+			roleLabel := map[models.UserRole]string{
+				models.RoleAdmin:        "Studio Director",
+				models.RoleOwner:        "Pemilik Studio",
+				models.RolePhotographer: "Fotografer",
+				models.RoleVideographer: "Videografer",
+				models.RolePhotoEditor:  "Editor Foto",
+				models.RoleVideoEditor:  "Editor Video",
+				models.RoleCoordinator:  "Koordinator Acara",
+			}
+
+			created := 0
+			for i, u := range users {
+				// Admin/pemilik already see everything; only staff need assignments.
+				if u.Role == models.RoleAdmin || u.Role == models.RoleOwner {
+					continue
+				}
+				p := projects[i%len(projects)]
+				member := models.ProjectMember{
+					ProjectID:     p.ID,
+					UserID:        u.ID,
+					RoleInProject: roleLabel[u.Role],
+					Notes:         "Ditambahkan otomatis sebagai data demo.",
+				}
+				if err := db.Create(&member).Error; err == nil {
+					created++
+				}
+			}
+			if created > 0 {
+				log.Printf("[Seed] Backfilled %d project members for demo accounts", created)
+			}
+		}
+	}
 }

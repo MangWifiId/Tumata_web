@@ -19,7 +19,7 @@ import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 
 const ProtectedLayout: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -64,11 +64,11 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/production" element={<Production />} />
             <Route path="/notes" element={<MeetingNotes />} />
-            <Route path="/finance" element={<Finance />} />
+            <Route path="/finance" element={isAdmin ? <Finance /> : <Navigate to="/" replace />} />
             <Route path="/team" element={<Team />} />
             <Route path="/documents" element={<Documents />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/reports" element={isAdmin ? <Reports /> : <Navigate to="/" replace />} />
+            <Route path="/settings" element={isAdmin ? <Settings /> : <Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

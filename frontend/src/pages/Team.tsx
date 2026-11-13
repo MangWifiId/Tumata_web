@@ -15,8 +15,10 @@ import {
 import { api } from '../services/api';
 import { User, UserRole } from '../types';
 import { Modal } from '../components/common/Modal';
+import { useAuth } from '../context/AuthContext';
 
 export const Team: React.FC = () => {
+  const { isAdmin } = useAuth();
   const [teamStats, setTeamStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,22 +70,24 @@ export const Team: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setFormData({
-              name: '',
-              email: '',
-              password: 'password123',
-              role: 'fotografer',
-              phone: '',
-            });
-            setIsModalOpen(true);
-          }}
-          className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Anggota Tim</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => {
+              setFormData({
+                name: '',
+                email: '',
+                password: 'password123',
+                role: 'fotografer',
+                phone: '',
+              });
+              setIsModalOpen(true);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Anggota Tim</span>
+          </button>
+        )}
       </div>
 
       {/* Team Cards Grid */}
