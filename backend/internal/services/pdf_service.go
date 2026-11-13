@@ -45,18 +45,8 @@ var (
 func (s *PDFService) getStudioSetting() *models.StudioSetting {
 	var setting models.StudioSetting
 	if err := s.db.First(&setting).Error; err != nil {
-		return &models.StudioSetting{
-			StudioName:  "TUMATA Wedding Studio",
-			Tagline:     "Wedding Photography & Cinematography",
-			Address:     "Jakarta, Indonesia",
-			WhatsApp:    "6281234567890",
-			Email:       "hello@tumatawedding.com",
-			BankName:    "BCA",
-			BankAccount: "8830192831",
-			BankHolder:  "TUMATA CREATIVE STUDIO",
-			SignerName:  "Dimas Anggara",
-			SignerRole:  "Studio Director",
-		}
+		// No settings saved yet: use only the studio name, never demo data.
+		return &models.StudioSetting{StudioName: "TUMATA"}
 	}
 	return &setting
 }
@@ -86,11 +76,25 @@ func (s *PDFService) drawHeader(pdf *fpdf.Fpdf, title string, setting *models.St
 	pdf.CellFormat(85, 5, fmt.Sprintf("Dicetak: %s", time.Now().Format("02 Jan 2006 15:04 WIB")), "", 1, "R", false, 0, "")
 
 	// Studio detail text under logo
+	contactLine := ""
+	if setting.WhatsApp != "" && setting.Email != "" {
+		contactLine = fmt.Sprintf("WA: %s | Email: %s", setting.WhatsApp, setting.Email)
+	} else if setting.WhatsApp != "" {
+		contactLine = fmt.Sprintf("WA: %s", setting.WhatsApp)
+	} else if setting.Email != "" {
+		contactLine = fmt.Sprintf("Email: %s", setting.Email)
+	}
+	studioLines := []string{setting.StudioName}
+	if contactLine != "" {
+		studioLines = append(studioLines, contactLine)
+	}
+	if setting.Address != "" {
+		studioLines = append(studioLines, setting.Address)
+	}
 	pdf.SetFont("Arial", "", 8)
 	pdf.SetTextColor(colorGrayText[0], colorGrayText[1], colorGrayText[2])
 	pdf.SetXY(15, 27)
-	pdf.MultiCell(85, 3.8, fmt.Sprintf("%s\nWA: %s | Email: %s\n%s",
-		setting.StudioName, setting.WhatsApp, setting.Email, setting.Address), "", "L", false)
+	pdf.MultiCell(85, 3.8, strings.Join(studioLines, "\n"), "", "L", false)
 
 	// Divider line
 	pdf.SetDrawColor(colorMainGreen[0], colorMainGreen[1], colorMainGreen[2])
@@ -197,54 +201,68 @@ func (s *PDFService) GenerateInvoicePDF(invoiceID uint) (string, *models.Documen
 	pdf.CellFormat(130, 8, "SISA TAGIHAN", "1", 0, "R", true, 0, "")
 	pdf.CellFormat(50, 8, "Rp "+formatRupiah(invoice.RemainingAmount), "1", 1, "R", true, 0, "")
 
-	// Payment instructions & Bank Details
+	// Payment instructions & Bank Details (only when configured)
 	bankY := pdf.GetY() + 8
-	pdf.SetXY(15, bankY)
-	pdf.SetFillColor(colorLightGreen[0], colorLightGreen[1], colorLightGreen[2])
-	pdf.Rect(15, bankY, 110, 32, "FD")
+	bankLines := []string{}
+	if setting.BankName != "" {
+		bankLines = append(bankLines, fmt.Sprintf("Bank Tujuan : %s", setting.BankName))
+	}
+	if setting.BankAccount != "" {
+		bankLines = append(bankLines, fmt.Sprintf("No. Rekening : %s", setting.BankAccount))
+	}
+	if setting.BankHolder != "" {
+		bankLines = append(bankLines, fmt.Sprintf("Atas Nama    : %s", setting.BankHolder))
+	}
+	if len(bankLines) > 0 {
+		boxHeight := 13 + float64(len(bankLines))*5
+		pdf.SetFillColor(colorLightGreen[0], colorLightGreen[1], colorLightGreen[2])
+		pdf.Rect(15, bankY, 110, boxHeight, "FD")
 
-	pdf.SetFont("Arial", "B", 9)
-	pdf.SetTextColor(colorDarkGreen[0], colorDarkGreen[1], colorDarkGreen[2])
-	pdf.SetXY(18, bankY+3)
-	pdf.Cell(100, 5, "INSTRUKSI PEMBAYARAN:")
-	pdf.SetFont("Arial", "", 8.5)
-	pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
-	pdf.SetXY(18, bankY+9)
-	pdf.Cell(100, 4, fmt.Sprintf("Bank Tujuan : %s", setting.BankName))
-	pdf.SetXY(18, bankY+14)
-	pdf.Cell(100, 4, fmt.Sprintf("No. Rekening : %s", setting.BankAccount))
-	pdf.SetXY(18, bankY+19)
-	pdf.Cell(100, 4, fmt.Sprintf("Atas Nama    : %s", setting.BankHolder))
-	pdf.SetXY(18, bankY+24)
-	pdf.SetFont("Arial", "I", 7.5)
-	pdf.Cell(100, 4, "*Harap sertakan nomor invoice pada berita transfer")
+		pdf.SetFont("Arial", "B", 9)
+		pdf.SetTextColor(colorDarkGreen[0], colorDarkGreen[1], colorDarkGreen[2])
+		pdf.SetXY(18, bankY+3)
+		pdf.Cell(100, 5, "INSTRUKSI PEMBAYARAN:")
+		pdf.SetFont("Arial", "", 8.5)
+		pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
+		for i, line := range bankLines {
+			pdf.SetXY(18, bankY+9+float64(i)*5)
+			pdf.Cell(100, 4, line)
+		}
+		pdf.SetXY(18, bankY+9+float64(len(bankLines))*5)
+		pdf.SetFont("Arial", "I", 7.5)
+		pdf.Cell(100, 4, "*Harap sertakan nomor invoice pada berita transfer")
+	}
 
-	// Signer Box
-	pdf.SetFont("Arial", "", 8.5)
-	pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
-	pdf.SetXY(140, bankY+3)
-	pdf.CellFormat(50, 4, "Hormat Kami,", "", 1, "C", false, 0, "")
-	pdf.SetXY(140, bankY+20)
-	pdf.SetFont("Arial", "B", 9)
-	pdf.CellFormat(50, 4, setting.SignerName, "", 1, "C", false, 0, "")
-	pdf.SetFont("Arial", "", 8)
-	pdf.SetXY(140, bankY+25)
-	pdf.CellFormat(50, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	// Signer Box (only when a signer is configured)
+	if setting.SignerName != "" || setting.SignerRole != "" {
+		pdf.SetFont("Arial", "", 8.5)
+		pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
+		pdf.SetXY(140, bankY+3)
+		pdf.CellFormat(50, 4, "Hormat Kami,", "", 1, "C", false, 0, "")
+		pdf.SetXY(140, bankY+20)
+		pdf.SetFont("Arial", "B", 9)
+		pdf.CellFormat(50, 4, setting.SignerName, "", 1, "C", false, 0, "")
+		pdf.SetFont("Arial", "", 8)
+		pdf.SetXY(140, bankY+25)
+		pdf.CellFormat(50, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	}
 
-	// Terms at bottom
-	termY := bankY + 38
-	pdf.SetXY(15, termY)
-	pdf.SetFont("Arial", "B", 8)
-	pdf.SetTextColor(colorDarkGreen[0], colorDarkGreen[1], colorDarkGreen[2])
-	pdf.Cell(180, 4, "SYARAT & KETENTUAN:")
-	pdf.Ln(4)
-	pdf.SetFont("Arial", "", 7.5)
-	pdf.SetTextColor(colorGrayText[0], colorGrayText[1], colorGrayText[2])
+	// Terms at bottom (only when filled in)
 	terms := setting.TermsAndConditions
 	if invoice.Terms != "" {
 		terms = invoice.Terms
 	}
-	pdf.MultiCell(180, 3.5, terms, "", "L", false)
+	if terms != "" {
+		termY := bankY + 38
+		pdf.SetXY(15, termY)
+		pdf.SetFont("Arial", "B", 8)
+		pdf.SetTextColor(colorDarkGreen[0], colorDarkGreen[1], colorDarkGreen[2])
+		pdf.Cell(180, 4, "SYARAT & KETENTUAN:")
+		pdf.Ln(4)
+		pdf.SetFont("Arial", "", 7.5)
+		pdf.SetTextColor(colorGrayText[0], colorGrayText[1], colorGrayText[2])
+		pdf.MultiCell(180, 3.5, terms, "", "L", false)
+	}
 
 	// Save file
 	fileName := fmt.Sprintf("Invoice_%s.pdf", strings.ReplaceAll(invoice.InvoiceNumber, "/", "-"))
@@ -357,20 +375,22 @@ func (s *PDFService) GenerateReceiptPDF(paymentID uint) (string, *models.Documen
 	pdf.SetFont("Arial", "", 8)
 	pdf.SetXY(20, y+85)
 	pdf.SetTextColor(colorGrayText[0], colorGrayText[1], colorGrayText[2])
-	pdf.Cell(70, 4, "TUMATA CREATIVE STUDIO")
+	pdf.Cell(70, 4, setting.StudioName)
 	pdf.SetXY(20, y+89)
 	pdf.Cell(70, 4, "Finance Department")
 
-	pdf.SetXY(120, y+80)
-	pdf.SetFont("Arial", "", 8.5)
-	pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
-	pdf.CellFormat(65, 4, "Penerima Kuasa,", "", 1, "C", false, 0, "")
-	pdf.SetXY(120, y+98)
-	pdf.SetFont("Arial", "B", 9)
-	pdf.CellFormat(65, 4, setting.SignerName, "", 1, "C", false, 0, "")
-	pdf.SetFont("Arial", "", 8)
-	pdf.SetXY(120, y+103)
-	pdf.CellFormat(65, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	if setting.SignerName != "" || setting.SignerRole != "" {
+		pdf.SetXY(120, y+80)
+		pdf.SetFont("Arial", "", 8.5)
+		pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
+		pdf.CellFormat(65, 4, "Penerima Kuasa,", "", 1, "C", false, 0, "")
+		pdf.SetXY(120, y+98)
+		pdf.SetFont("Arial", "B", 9)
+		pdf.CellFormat(65, 4, setting.SignerName, "", 1, "C", false, 0, "")
+		pdf.SetFont("Arial", "", 8)
+		pdf.SetXY(120, y+103)
+		pdf.CellFormat(65, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	}
 
 	// Save file
 	fileName := fmt.Sprintf("Kwitansi_%s.pdf", strings.ReplaceAll(payment.ReceiptNumber, "/", "-"))
@@ -490,29 +510,33 @@ func (s *PDFService) GenerateQuotationPDF(projectID uint) (string, *models.Docum
 	pdf.CellFormat(120, 10, "TOTAL NILAI INVESTASI DOKUMENTASI", "1", 0, "R", true, 0, "")
 	pdf.CellFormat(60, 10, "Rp "+formatRupiah(project.ContractValue), "1", 1, "R", true, 0, "")
 
-	// Terms and notes
-	tY := pdf.GetY() + 8
-	pdf.SetXY(15, tY)
-	pdf.SetFont("Arial", "B", 8.5)
-	pdf.SetTextColor(colorDarkGreen[0], colorDarkGreen[1], colorDarkGreen[2])
-	pdf.Cell(180, 5, "KETENTUAN BOOKING:")
-	pdf.Ln(4)
-	pdf.SetFont("Arial", "", 8)
-	pdf.SetTextColor(colorGrayText[0], colorGrayText[1], colorGrayText[2])
-	pdf.MultiCell(180, 4, setting.TermsAndConditions, "", "L", false)
+	// Terms and notes (only when filled in)
+	if setting.TermsAndConditions != "" {
+		tY := pdf.GetY() + 8
+		pdf.SetXY(15, tY)
+		pdf.SetFont("Arial", "B", 8.5)
+		pdf.SetTextColor(colorDarkGreen[0], colorDarkGreen[1], colorDarkGreen[2])
+		pdf.Cell(180, 5, "KETENTUAN BOOKING:")
+		pdf.Ln(4)
+		pdf.SetFont("Arial", "", 8)
+		pdf.SetTextColor(colorGrayText[0], colorGrayText[1], colorGrayText[2])
+		pdf.MultiCell(180, 4, setting.TermsAndConditions, "", "L", false)
+	}
 
-	// Signer
-	sY := pdf.GetY() + 8
-	pdf.SetXY(120, sY)
-	pdf.SetFont("Arial", "", 8.5)
-	pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
-	pdf.CellFormat(65, 4, "Hormat Kami,", "", 1, "C", false, 0, "")
-	pdf.SetXY(120, sY+16)
-	pdf.SetFont("Arial", "B", 9)
-	pdf.CellFormat(65, 4, setting.SignerName, "", 1, "C", false, 0, "")
-	pdf.SetFont("Arial", "", 8)
-	pdf.SetXY(120, sY+21)
-	pdf.CellFormat(65, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	// Signer (only when configured)
+	if setting.SignerName != "" || setting.SignerRole != "" {
+		sY := pdf.GetY() + 8
+		pdf.SetXY(120, sY)
+		pdf.SetFont("Arial", "", 8.5)
+		pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
+		pdf.CellFormat(65, 4, "Hormat Kami,", "", 1, "C", false, 0, "")
+		pdf.SetXY(120, sY+16)
+		pdf.SetFont("Arial", "B", 9)
+		pdf.CellFormat(65, 4, setting.SignerName, "", 1, "C", false, 0, "")
+		pdf.SetFont("Arial", "", 8)
+		pdf.SetXY(120, sY+21)
+		pdf.CellFormat(65, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	}
 
 	fileName := fmt.Sprintf("Penawaran_%s.pdf", strings.ReplaceAll(docNumber, "/", "-"))
 	filePath := filepath.Join(s.uploadDir, "documents", fileName)
@@ -565,14 +589,26 @@ func (s *PDFService) GenerateContractPDF(projectID uint) (string, *models.Docume
 	pdf.SetXY(15, y)
 	pdf.Cell(180, 5, fmt.Sprintf("KONTRAK KERJA DOKUMENTASI PERNIKAHAN — NO: %s", docNumber))
 
+	studioParty := setting.StudioName
+	if setting.Address != "" {
+		studioParty = fmt.Sprintf("%s, beralamat di %s", setting.StudioName, setting.Address)
+	}
+	clientParty := client.Name
+	if client.WhatsApp != "" {
+		clientParty = fmt.Sprintf("%s, WhatsApp %s", client.Name, client.WhatsApp)
+	}
+	if client.Address != "" {
+		clientParty = fmt.Sprintf("%s, beralamat di %s", clientParty, client.Address)
+	}
+
 	pdf.SetFont("Arial", "", 8.5)
 	pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
 	pdf.SetXY(15, y+8)
 	pdf.MultiCell(180, 4.5, fmt.Sprintf("Perjanjian ini dibuat pada hari ini, %s, antara pihak-pihak sebagai berikut:\n"+
-		"1. PIHAK PERTAMA (Studio): %s, beralamat di %s, bertindak untuk dan atas nama Studio.\n"+
-		"2. PIHAK KEDUA (Klien): %s, WhatsApp %s, beralamat di %s.\n\n"+
+		"1. PIHAK PERTAMA (Studio): %s, bertindak untuk dan atas nama Studio.\n"+
+		"2. PIHAK KEDUA (Klien): %s.\n\n"+
 		"Kedua belah pihak telah bersepakat mengenai ketentuan penyediaan jasa dokumentasi pernikahan:",
-		time.Now().Format("02 January 2006"), setting.StudioName, setting.Address, client.Name, client.WhatsApp, client.Address), "", "L", false)
+		time.Now().Format("02 January 2006"), studioParty, clientParty), "", "L", false)
 
 	// Contract detail box
 	cY := pdf.GetY() + 4
@@ -611,13 +647,15 @@ func (s *PDFService) GenerateContractPDF(projectID uint) (string, *models.Docume
 	pdf.SetFont("Arial", "", 8)
 	pdf.SetTextColor(colorDarkText[0], colorDarkText[1], colorDarkText[2])
 
-	clauses := fmt.Sprintf("PASAL 1 — HAK & KEWAJIBAN\n"+
-		"Pihak Pertama berkewajiban menyediakan tim dokumentasi profesional, peralatan terbaik, dan menyerahkan hasil karya tepat waktu.\n\n"+
-		"PASAL 2 — SYARAT PEMBAYARAN\n"+
-		"%s\n\n"+
-		"PASAL 3 — FORCE MAJEURE & PEMBATALAN\n"+
-		"Apabila terjadi force majeure (bencana alam, huru-hara, atau kebijakan darurat pemerintah), kedua belah pihak sepakat merundingkan penjadwalan ulang tanpa penalti.",
-		setting.TermsAndConditions)
+	clauses := "PASAL 1 — HAK & KEWAJIBAN\n" +
+		"Pihak Pertama berkewajiban menyediakan tim dokumentasi profesional, peralatan terbaik, dan menyerahkan hasil karya tepat waktu.\n\n"
+	pasal := 2
+	if setting.TermsAndConditions != "" {
+		clauses += fmt.Sprintf("PASAL %d — SYARAT PEMBAYARAN\n%s\n\n", pasal, setting.TermsAndConditions)
+		pasal++
+	}
+	clauses += fmt.Sprintf("PASAL %d — FORCE MAJEURE & PEMBATALAN\n"+
+		"Apabila terjadi force majeure (bencana alam, huru-hara, atau kebijakan darurat pemerintah), kedua belah pihak sepakat merundingkan penjadwalan ulang tanpa penalti.", pasal)
 	pdf.MultiCell(180, 4, clauses, "", "L", false)
 
 	// Signatures
@@ -628,13 +666,15 @@ func (s *PDFService) GenerateContractPDF(projectID uint) (string, *models.Docume
 	pdf.SetXY(25, sY+18)
 	pdf.CellFormat(50, 4, client.Name, "", 1, "C", false, 0, "")
 
-	pdf.SetXY(125, sY)
-	pdf.CellFormat(50, 4, "PIHAK PERTAMA (STUDIO)", "", 1, "C", false, 0, "")
-	pdf.SetXY(125, sY+18)
-	pdf.CellFormat(50, 4, setting.SignerName, "", 1, "C", false, 0, "")
-	pdf.SetFont("Arial", "", 8)
-	pdf.SetXY(125, sY+22)
-	pdf.CellFormat(50, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	if setting.SignerName != "" || setting.SignerRole != "" {
+		pdf.SetXY(125, sY)
+		pdf.CellFormat(50, 4, "PIHAK PERTAMA (STUDIO)", "", 1, "C", false, 0, "")
+		pdf.SetXY(125, sY+18)
+		pdf.CellFormat(50, 4, setting.SignerName, "", 1, "C", false, 0, "")
+		pdf.SetFont("Arial", "", 8)
+		pdf.SetXY(125, sY+22)
+		pdf.CellFormat(50, 4, setting.SignerRole, "", 1, "C", false, 0, "")
+	}
 
 	fileName := fmt.Sprintf("Kontrak_%s.pdf", strings.ReplaceAll(docNumber, "/", "-"))
 	filePath := filepath.Join(s.uploadDir, "documents", fileName)

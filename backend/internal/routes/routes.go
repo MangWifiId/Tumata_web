@@ -73,8 +73,12 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 
 			// Auth & Profile
 			protected.GET("/auth/profile", authHandler.GetProfile)
+			protected.PATCH("/auth/password", authHandler.ChangePassword)
 			protected.GET("/users", authHandler.GetUsers)
 			protected.POST("/users", adminOnly, authHandler.CreateUser)
+			protected.PUT("/users/:id", adminOnly, authHandler.UpdateUser)
+			protected.PATCH("/users/:id/password", adminOnly, authHandler.ResetUserPassword)
+			protected.DELETE("/users/:id", adminOnly, authHandler.DeleteUser)
 
 			// Dashboard
 			protected.GET("/dashboard/metrics", dashboardHandler.GetMetrics)

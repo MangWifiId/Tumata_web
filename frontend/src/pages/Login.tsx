@@ -4,18 +4,9 @@ import { Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-const DEMO_ACCOUNTS = [
-  { name: 'Dimas Anggara', role: 'Admin / Pemilik', email: 'admin@tumata.com', password: 'admin123' },
-  { name: 'Budi Santoso', role: 'Fotografer', email: 'budi@tumata.com', password: 'budi123' },
-  { name: 'Reza Pratama', role: 'Videografer', email: 'reza@tumata.com', password: 'reza123' },
-  { name: 'Siti Rahayu', role: 'Editor Foto', email: 'siti@tumata.com', password: 'siti123' },
-  { name: 'Dani Firmansyah', role: 'Editor Video', email: 'dani@tumata.com', password: 'dani123' },
-  { name: 'Maya Wulandari', role: 'Koordinator Acara', email: 'maya@tumata.com', password: 'maya123' },
-];
-
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('admin@tumata.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,37 +103,9 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Credentials helper */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <p className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold text-center mb-3">
-              Daftar Akun Demo — klik untuk mengisi
-            </p>
-            <div className="space-y-1.5">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => {
-                    setEmail(acc.email);
-                    setPassword(acc.password);
-                    setError(null);
-                  }}
-                  className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/60 transition text-left"
-                >
-                  <span className="min-w-0">
-                    <span className="block text-xs font-semibold text-slate-700 truncate">
-                      {acc.name}
-                    </span>
-                    <span className="block text-[10px] text-slate-400">{acc.role}</span>
-                  </span>
-                  <span className="text-right shrink-0">
-                    <span className="block text-[11px] font-mono text-slate-600">{acc.email}</span>
-                    <span className="block text-[10px] font-mono text-slate-400">{acc.password}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="mt-8 pt-6 border-t border-slate-100 text-center text-[11px] text-slate-400">
+            Akun dikelola oleh Admin Studio melalui menu <strong>Daftar Akun</strong>.
+          </p>
         </div>
       </div>
     </div>

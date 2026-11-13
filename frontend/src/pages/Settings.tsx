@@ -15,19 +15,18 @@ import { StudioSetting } from '../types';
 
 export const Settings: React.FC = () => {
   const [setting, setSetting] = useState<StudioSetting>({
-    studio_name: 'TUMATA Wedding Studio',
-    tagline: 'Capturing Every Sacred Moment with Elegance',
-    address: 'Jl. Melati Indah No. 88, Jakarta Selatan',
-    phone: '+62 812-3456-7890',
-    whatsapp: '6281234567890',
-    email: 'hello@tumatawedding.com',
-    bank_name: 'Bank Central Asia (BCA)',
-    bank_account: '8830192831',
-    bank_holder: 'TUMATA CREATIVE STUDIO',
-    signer_name: 'Dimas Anggara',
-    signer_role: 'Studio Director & Lead Artist',
-    terms_and_conditions:
-      '1. Pembayaran DP minimal 30% untuk mengamankan tanggal acara.\n2. Pelunasan dilakukan maksimal 7 hari sebelum acara.\n3. Hasil dokumentasi diserahkan maksimal 21 hari kerja.',
+    studio_name: 'TUMATA',
+    tagline: '',
+    address: '',
+    phone: '',
+    whatsapp: '',
+    email: '',
+    bank_name: '',
+    bank_account: '',
+    bank_holder: '',
+    signer_name: '',
+    signer_role: '',
+    terms_and_conditions: '',
     logo_path: 'assets/tumata-logo.png',
   });
 

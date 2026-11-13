@@ -102,9 +102,23 @@ export const api = {
       body: JSON.stringify(credentials),
     }),
   getProfile: () => request<User>('/auth/profile'),
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    request<{ message: string }>('/auth/password', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   getUsers: () => request<User[]>('/users'),
   createUser: (data: Partial<User> & { password?: string }) =>
     request<User>('/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id: number, data: Partial<User>) =>
+    request<User>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  resetUserPassword: (id: number, new_password: string) =>
+    request<{ message: string }>(`/users/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ new_password }),
+    }),
+  deleteUser: (id: number) =>
+    request<{ message: string }>(`/users/${id}`, { method: 'DELETE' }),
 
   // Dashboard
   getDashboardMetrics: () => request<DashboardMetrics>('/dashboard/metrics'),

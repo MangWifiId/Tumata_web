@@ -14,6 +14,7 @@ import { Production } from './pages/Production';
 import { MeetingNotes } from './pages/MeetingNotes';
 import { Finance } from './pages/Finance';
 import { Team } from './pages/Team';
+import { Accounts } from './pages/Accounts';
 import { Documents } from './pages/Documents';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
@@ -37,6 +38,7 @@ const ProtectedLayout: React.FC = () => {
     if (path === '/notes') return { title: 'Notulensi & Catatan', subtitle: 'Hasil rapat, permintaan khusus klien, dan action items' };
     if (path === '/finance') return { title: 'Keuangan & Pembayaran', subtitle: 'Manajemen invoice, kwitansi sah, dan pengeluaran' };
     if (path === '/team') return { title: 'Manajemen Tim', subtitle: 'Anggota fotografer, videografer, editor, dan jadwal ketersediaan' };
+    if (path === '/accounts') return { title: 'Daftar Akun', subtitle: 'Kelola akun pengguna, peran, dan kata sandi sistem' };
     if (path === '/documents') return { title: 'Dokumen & Hasil', subtitle: 'Arsip PDF resmi (Penawaran, Invoice, Kwitansi, Kontrak)' };
     if (path === '/reports') return { title: 'Laporan & Analitik', subtitle: 'Laba rugi, arus kas terverifikasi, dan metrik bisnis' };
     if (path === '/settings') return { title: 'Pengaturan Studio', subtitle: 'Profil studio, rekening bank, penandatangan, dan template syarat' };
@@ -66,6 +68,7 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/notes" element={<MeetingNotes />} />
             <Route path="/finance" element={isAdmin ? <Finance /> : <Navigate to="/" replace />} />
             <Route path="/team" element={<Team />} />
+            <Route path="/accounts" element={isAdmin ? <Accounts /> : <Navigate to="/" replace />} />
             <Route path="/documents" element={<Documents />} />
             <Route path="/reports" element={isAdmin ? <Reports /> : <Navigate to="/" replace />} />
             <Route path="/settings" element={isAdmin ? <Settings /> : <Navigate to="/" replace />} />
