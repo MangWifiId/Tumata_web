@@ -185,13 +185,15 @@ Sistem telah di-*seed* dengan data awal dan pengguna berikut:
 
 ## ☁️ Deploy ke Hostless Cloud
 
-Repo ini sudah menyertakan `Dockerfile` multi-stage dan `hostless.yaml` sehingga Go dan React dikompilasi di tahap build (bukan saat runtime).
+Repo ini sudah menyertakan `Dockerfile` dan `hostless.yaml`. Docker hanya mengompilasi backend Go; frontend sudah dibangun ke `frontend/dist` dan ikut di-commit agar build Hostless cepat dan tidak kehabisan waktu.
 
 1. Hubungkan repository GitHub `MangWifiId/Tumata_web` ke app Hostless.
 2. Tambahkan environment variables di dashboard Hostless:
    - `DATABASE_URL` — connection string Neon/PostgreSQL (`sslmode=require`).
    - `JWT_SECRET` — string acak panjang.
 3. Deploy. Hostless membangun image Docker, lalu menjalankan `start.sh` yang mengeksekusi binary `tumata-server`.
+
+Setiap kali mengubah kode frontend, jalankan `cd frontend && pnpm build` lalu commit folder `frontend/dist` sebelum push/deploy.
 
 Catatan penting:
 

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* The production bundle is committed for Hostless; never scan it for classes. */
+@source not "../dist";
+
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 antialiased font-sans min-h-screen;

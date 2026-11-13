@@ -1,22 +1,17 @@
 # syntax=docker/dockerfile:1
 
-# ---------- Frontend build ----------
-FROM node:24-alpine AS frontend
-WORKDIR /app/frontend
-RUN npm install -g pnpm@10
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY frontend/ ./
-RUN pnpm build
-
 # ---------- Backend build ----------
+# The React app is built locally and committed in frontend/dist, so the Docker
+# build only compiles Go. This keeps the build fast and the exported image small.
 FROM golang:1.27-alpine AS backend
 WORKDIR /src
-RUN apk add --no-cache git
+RUN apk add --no-cache ca-certificates
 COPY backend/go.mod backend/go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY backend/ ./
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/tumata-server ./cmd/server
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/tumata-server ./cmd/server
 
 # ---------- Runtime ----------
 FROM alpine:3.22
@@ -25,7 +20,7 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=backend /out/tumata-server ./tumata-server
 COPY start.sh ./start.sh
-COPY --from=frontend /app/frontend/dist /app/frontend/dist
+COPY frontend/dist /app/frontend/dist
 COPY assets /app/assets
 
 RUN chmod +x ./tumata-server ./start.sh && mkdir -p /app/backend/uploads/documents

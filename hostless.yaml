@@ -1,10 +1,13 @@
 # Hostless Cloud deployment configuration
-# Build the Go backend + React frontend with the multi-stage Dockerfile in the
-# repository root. Hostless looks for ./Dockerfile automatically when
-# build.system is "docker".
+# Build the Go backend with the multi-stage Dockerfile in the repository root.
+# The React app is prebuilt into frontend/dist and copied by the Dockerfile.
 # Docs: https://docs.hostless.cloud/app/hostlessfile
 
 build:
   system: docker
+  min_cpu: 1
+  max_cpu: 4
+  min_memory: 2048
+  max_memory: 8192
 
 start_command: "sh start.sh"

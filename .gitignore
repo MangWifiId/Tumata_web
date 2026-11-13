@@ -2,8 +2,7 @@
 node_modules/
 
 # Build output
-dist/
-frontend/dist/
+/dist/
 *.exe
 *.dll
 *.so
