@@ -33,3 +33,6 @@ backend/uploads/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Editor / OS backup files
+*~
