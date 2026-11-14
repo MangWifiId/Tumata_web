@@ -50,6 +50,7 @@ export const Accounts: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   // Create / edit modal
@@ -86,10 +87,11 @@ export const Accounts: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const data = await api.getUsers();
       setUsers(data);
     } catch (err: any) {
-      setFormError(err.message || 'Gagal memuat daftar akun');
+      setLoadError(err.message || 'Gagal memuat daftar akun');
     } finally {
       setLoading(false);
     }
@@ -255,11 +257,11 @@ export const Accounts: React.FC = () => {
         <div className="flex items-center gap-2 text-xs">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 font-semibold">
             <Users className="w-3.5 h-3.5 text-emerald-600" />
-            {users.length} Akun
+            {loading ? 'Memuat...' : `${users.length} Akun`}
           </span>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold">
             <ShieldCheck className="w-3.5 h-3.5" />
-            {adminCount} Admin / Pemilik
+            {loading ? 'Memuat...' : `${adminCount} Admin / Pemilik`}
           </span>
         </div>
 
@@ -275,10 +277,27 @@ export const Accounts: React.FC = () => {
         </div>
       </div>
 
+      {/* Load error */}
+      {loadError && !loading && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {loadError}
+          </span>
+          <button
+            onClick={loadUsers}
+            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold self-start sm:self-auto"
+          >
+            Coba lagi
+          </button>
+        </div>
+      )}
+
       {/* Account list */}
       {loading ? (
         <div className="p-12 text-center">
           <div className="w-8 h-8 border-3 border-emerald-600/30 border-t-emerald-600 rounded-full animate-spin mx-auto" />
+          <p className="mt-3 text-xs text-slate-400">Memuat daftar akun...</p>
         </div>
       ) : filteredUsers.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
